@@ -1,0 +1,37 @@
+name: Unity reference check
+description: Revisa un proyecto Unity sin abrir Unity (.meta que faltan o huérfanos, GUID duplicados, referencias rotas y claves subidas por error).
+author: JaimeCamachoDev
+
+inputs:
+  project:
+    description: Carpeta del proyecto Unity (la que contiene Assets/).
+    default: "."
+  baseline:
+    description: Fichero de línea base con los problemas conocidos (relativo al proyecto).
+    default: ".github/unity-ref-check-baseline.txt"
+  ignore:
+    description: Globs de rutas a ignorar, uno por línea (además de Assets/Samples/** y Assets/TextMesh Pro/**).
+    default: ""
+  secrets:
+    description: Buscar claves y tokens subidos por error ("true" o "false").
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Caché de los GUID de paquetes
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/unity-ref-check
+        key: unity-ref-check-${{ hashFiles(format('{0}/Packages/packages-lock.json', inputs.project)) }}
+        restore-keys: unity-ref-check-
+
+    - name: Revisar referencias
+      shell: bash
+      env:
+        URC_IGNORE: ${{ inputs.ignore }}
+      run: |
+        args=(--project "${{ inputs.project }}" --baseline "${{ inputs.baseline }}")
+        if [ -n "$URC_IGNORE" ]; then args+=(--ignore "$URC_IGNORE"); fi
+        if [ "${{ inputs.secrets }}" != "true" ]; then args+=(--no-secrets); fi
+        python3 "${{ github.action_path }}/unity_ref_check.py" "${args[@]}"
