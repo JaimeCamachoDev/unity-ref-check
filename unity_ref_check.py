@@ -52,7 +52,18 @@ SECRET_PATTERNS = [
     ("clave de AWS", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
     ("clave de Google", re.compile(r"\bAIza[0-9A-Za-z_\-]{35}\b")),
     ("token de Slack", re.compile(r"\bxox[abprs]-[0-9A-Za-z-]{10,}\b")),
+    ("clave de Anthropic", re.compile(r"\bsk-ant-[A-Za-z0-9_\-]{32,}")),
+    ("clave de OpenAI", re.compile(r"\bsk-[A-Za-z0-9_\-]{20,}T3BlbkFJ[A-Za-z0-9_\-]{20,}|\bsk-proj-[A-Za-z0-9_\-]{40,}")),
+    ("clave de Stripe", re.compile(r"\b(?:sk|rk)_live_[0-9A-Za-z]{20,}\b")),
+    ("webhook de Discord", re.compile(r"https://(?:ptb\.|canary\.)?discord(?:app)?\.com/api/webhooks/\d+/[\w-]{50,}")),
+    ("webhook de Slack", re.compile(r"https://hooks\.slack\.com/services/T[0-9A-Z]+/B[0-9A-Z]+/[0-9A-Za-z]{20,}")),
+    ("clave de Azure Storage", re.compile(r"AccountKey=[0-9A-Za-z+/]{80,}={0,2}")),
+    ("token de Hugging Face", re.compile(r"\bhf_[A-Za-z0-9]{34,}\b")),
+    ("token en .npmrc", re.compile(r"_authToken\s*=\s*(?!\$\{)\S{20,}")),
 ]
+# Ficheros que no deberían subirse nunca, sea cual sea su contenido
+SECRET_FILES = re.compile(r"(?i)(^|/)(\.env(\.[\w.-]+)?|id_(rsa|dsa|ecdsa|ed25519)|[^/]+\.(pem|p12|pfx|keystore|jks|mobileprovision)|credentials\.json|service[-_]account[^/]*\.json)$")
+SECRET_FILES_OK = re.compile(r"(?i)\.env\.(example|sample|template)$|(^|/)debug\.keystore$")
 
 
 def category(ext, key):
@@ -279,6 +290,10 @@ def check_secrets(project):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
         for f in files:
             full = os.path.join(root, f)
+            relpath = rel(full, project)
+            if SECRET_FILES.search(relpath) and not SECRET_FILES_OK.search(relpath):
+                found.append(("posible secreto", "fichero sensible", relpath))
+                continue
             try:
                 if os.path.getsize(full) > 2_000_000:
                     continue
@@ -304,8 +319,17 @@ def main():
 
     project = os.path.abspath(args.project)
     if not os.path.exists(os.path.join(project, "ProjectSettings", "ProjectVersion.txt")):
-        print(f"{project} no es un proyecto Unity (falta ProjectSettings/ProjectVersion.txt): nada que revisar")
-        return 0
+        # Sin proyecto Unity solo se buscan claves (webs, herramientas, scripts…)
+        print(f"{project} no es un proyecto Unity: solo se buscan claves")
+        if args.no_secrets or args.write_baseline:
+            return 0
+        found = check_secrets(project)
+        in_actions = os.environ.get("GITHUB_ACTIONS") == "true"
+        for kind, what, path in found:
+            msg = f"{kind}: {what} en {path}"
+            print(f"::error file={path}::{msg}" if in_actions else f"NUEVO   {msg}")
+        print(f"Posibles secretos: {len(found)}")
+        return 1 if found else 0
     ignore = DEFAULT_IGNORE + [g.strip() for item in args.ignore for g in re.split(r"[\n,]", item) if g.strip()]
     log = []
     known_packages, unity_version = package_guids(project, args.cache, log)

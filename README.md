@@ -11,7 +11,9 @@ _**Acción de GitHub que revisa un proyecto Unity sin abrir Unity: .meta, GUID d
 * **`.meta`** que faltan (asset sin `.meta`) o huérfanos (`.meta` sin asset) en `Assets/`.
 * **GUID duplicados** entre `.meta` del proyecto.
 * **Referencias rotas**: GUID usados en escenas, prefabs, materiales, Shader Graph, VFX Graph, controladores, etc. que no existen ni en el proyecto ni en los paquetes que usa. Se clasifican como en el Inspector: material rosa (shader), Missing Script, prefab anidado, malla, subgrafo/textura de Shader Graph, VFX Graph u otros.
-* **Claves y tokens** subidos por error (npm, GitHub, claves privadas, AWS, Google, Slack).
+* **Claves y tokens** subidos por error: npm, GitHub, Anthropic, OpenAI, Stripe, AWS, Google, Azure Storage, Hugging Face, Slack, webhooks de Slack y Discord, claves privadas y `_authToken` en `.npmrc`.
+* **Ficheros sensibles**, sea cual sea su contenido: `.env`, `id_rsa`, `*.pem`, `*.p12`, `*.pfx`, `*.keystore`, `*.jks`, `*.mobileprovision`, `credentials.json` y `service-account*.json` (se permiten `.env.example`/`.sample`/`.template` y `debug.keystore`).
+* En repos que **no son de Unity** (webs, herramientas, scripts) solo se buscan claves y ficheros sensibles, así que el mismo workflow sirve para todos.
 
 Los GUID de los paquetes salen de `Packages/packages-lock.json`:
 

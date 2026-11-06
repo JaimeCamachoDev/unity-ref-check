@@ -1,5 +1,5 @@
 name: Unity reference check
-description: Revisa un proyecto Unity sin abrir Unity (.meta que faltan o huérfanos, GUID duplicados, referencias rotas y claves subidas por error).
+description: Revisa un proyecto Unity sin abrir Unity (.meta que faltan o huérfanos, GUID duplicados, referencias rotas y claves subidas por error). En repos que no son de Unity solo busca claves.
 author: JaimeCamachoDev
 
 inputs:
